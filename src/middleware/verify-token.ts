@@ -1,4 +1,5 @@
 import type { RequestHandler } from "express";
+import { ObjectId } from "mongodb";
 import { getDatabase } from "../config/database.js";
 import { sendResponse } from "../utils/apiResponse.js";
 
@@ -19,6 +20,10 @@ export const verifyToken: RequestHandler = async (req, res, next) => {
   const session = await Sessions.findOne({ token });
   if (!session) {
     return sendResponse(res, 401, "Invalid or expired session.");
+  }
+
+  if (!(session.userId instanceof ObjectId)) {
+    return sendResponse(res, 401, "Invalid session.");
   }
 
   req.userId = session.userId;
