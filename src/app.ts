@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import { errorHandler } from "./middleware/error-handler.js";
 import menuItemsRoutes from "./routes/menuItems.routes.js";
+import vendorsRoutes from "./routes/vendors.routes.js";
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use("/health", async (_req, res) => {
 });
 
 app.use("/api/v1/menu-items", menuItemsRoutes);
+app.use("/api/v1/vendors", vendorsRoutes);
 
 app.use(errorHandler);
 
