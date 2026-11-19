@@ -6,13 +6,14 @@ import {
   getMenuItemById,
   updateMenuItem,
 } from "../controllers/menuItems.controller.js";
+import { verifyToken } from "../middleware/verify-token.js";
 
 const router = Router();
 
 router.get("/", getAllMenuItems);
-router.post("/", createMenuItem);
+router.post("/", verifyToken, createMenuItem);
 router.get("/:id", getMenuItemById);
-router.patch("/:id", updateMenuItem);
-router.delete("/:id", deleteMenuItem);
+router.patch("/:id", verifyToken, updateMenuItem);
+router.delete("/:id", verifyToken, deleteMenuItem);
 
 export default router;

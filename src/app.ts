@@ -12,7 +12,7 @@ app.use("/health", async (_req, res) => {
   res.status(200).send("hello world");
 });
 
-app.use("/api/menu-items", menuItemsRoutes);
+app.use("/api/v1/menu-items", menuItemsRoutes);
 
 app.use(errorHandler);
 
