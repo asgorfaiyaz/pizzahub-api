@@ -21,7 +21,9 @@ export async function getAllMenuItems(
   const { search, category, location, page = 1, limit = 10 } = options;
   const skip = (page - 1) * limit;
 
-  const filter: Filter<MenuItemDocument> = {};
+  const filter: Filter<MenuItemDocument> = {
+    status: "approved",
+  };
 
   if (search && search.trim()) {
     const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -89,7 +91,9 @@ export function getMenuItemsByVendorId(vendorId: ObjectId) {
 }
 
 export async function getDistinctLocations(): Promise<string[]> {
-  const locations = await menuItems.distinct("location");
+  const locations = await menuItems.distinct("location", {
+    status: "approved",
+  });
   return locations.sort((a, b) => a.localeCompare(b));
 }
 
