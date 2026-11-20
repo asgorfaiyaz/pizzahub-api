@@ -23,12 +23,15 @@ export const getAllMenuItems: RequestHandler = async (req, res) => {
     );
   }
 
-  const { search, name, category, location, page, limit } = result.data;
+  const { search, name, category, location, sortBy, sortOrder, page, limit } =
+    result.data;
 
   const { items, pagination } = await getAllMenuItemsRecords({
     search: search ?? name,
     category,
     location,
+    sortBy,
+    sortOrder,
     page,
     limit,
   });

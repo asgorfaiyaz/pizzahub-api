@@ -30,6 +30,8 @@ export const getMenuItemsQuerySchema = z.object({
   name: z.string().trim().optional(),
   category: z.string().trim().optional(),
   location: z.string().trim().optional(),
+  sortBy: z.enum(["price", "itemName", "_id"]).default("_id"),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
 });

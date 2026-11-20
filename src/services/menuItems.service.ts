@@ -1,4 +1,4 @@
-import { ObjectId, type Filter } from "mongodb";
+import { ObjectId, type Document, type Filter } from "mongodb";
 import { getDatabase } from "../config/database.js";
 import type {
   GetMenuItemsQuery,
@@ -18,7 +18,15 @@ export async function createMenuItem(data: MenuItemInput, vendorId: ObjectId) {
 export async function getAllMenuItems(
   options: Partial<GetMenuItemsQuery> = {},
 ) {
-  const { search, category, location, page = 1, limit = 10 } = options;
+  const {
+    search,
+    category,
+    location,
+    sortBy = "_id",
+    sortOrder = "desc",
+    page = 1,
+    limit = 10,
+  } = options;
   const skip = (page - 1) * limit;
 
   const filter: Filter<MenuItemDocument> = {
@@ -40,37 +48,43 @@ export async function getAllMenuItems(
     filter.location = { $regex: escaped, $options: "i" };
   }
 
+  const pipeline: Document[] = [
+    { $match: filter },
+    {
+      $sort: {
+        [sortBy]: sortOrder === "asc" ? 1 : -1,
+        _id: 1,
+      },
+    },
+    { $skip: skip },
+    { $limit: limit },
+    {
+      $lookup: {
+        from: "user",
+        localField: "vendorId",
+        foreignField: "_id",
+        pipeline: [
+          {
+            $project: {
+              name: 1,
+              businessName: 1,
+            },
+          },
+        ],
+        as: "vendor",
+      },
+    },
+    {
+      $unwind: {
+        path: "$vendor",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+  ];
+
   const [total, items] = await Promise.all([
     menuItems.countDocuments(filter),
-    menuItems
-      .aggregate([
-        { $match: filter },
-        { $skip: skip },
-        { $limit: limit },
-        {
-          $lookup: {
-            from: "user",
-            localField: "vendorId",
-            foreignField: "_id",
-            pipeline: [
-              {
-                $project: {
-                  name: 1,
-                  businessName: 1,
-                },
-              },
-            ],
-            as: "vendor",
-          },
-        },
-        {
-          $unwind: {
-            path: "$vendor",
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-      ])
-      .toArray(),
+    menuItems.aggregate(pipeline).toArray(),
   ]);
 
   const totalPages = Math.ceil(total / limit);
