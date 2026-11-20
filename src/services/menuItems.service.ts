@@ -110,12 +110,12 @@ export async function getMenuItemById(id: string) {
               },
             },
           ],
-          as: "user",
+          as: "vendor",
         },
       },
       {
         $unwind: {
-          path: "$user",
+          path: "$vendor",
           preserveNullAndEmptyArrays: true,
         },
       },
