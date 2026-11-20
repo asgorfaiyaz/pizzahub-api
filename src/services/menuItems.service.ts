@@ -1,6 +1,9 @@
-import { ObjectId } from "mongodb";
+import { ObjectId, type Filter } from "mongodb";
 import { getDatabase } from "../config/database.js";
-import type { MenuItemInput } from "../schemas/menuItem.schema.js";
+import type {
+  GetMenuItemsQuery,
+  MenuItemInput,
+} from "../schemas/menuItem.schema.js";
 
 type MenuItemDocument = MenuItemInput & { vendorId: ObjectId };
 
@@ -12,16 +15,109 @@ export async function createMenuItem(data: MenuItemInput, vendorId: ObjectId) {
   return menuItems.findOne({ _id: result.insertedId });
 }
 
-export function getAllMenuItems() {
-  return menuItems.find().toArray();
+export async function getAllMenuItems(
+  options: Partial<GetMenuItemsQuery> = {},
+) {
+  const { search, category, location, page = 1, limit = 10 } = options;
+  const skip = (page - 1) * limit;
+
+  const filter: Filter<MenuItemDocument> = {};
+
+  if (search && search.trim()) {
+    const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.itemName = { $regex: escaped, $options: "i" };
+  }
+
+  if (category && category.trim()) {
+    const escaped = category.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.category = { $regex: `^${escaped}$`, $options: "i" };
+  }
+
+  if (location && location.trim()) {
+    const escaped = location.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.location = { $regex: escaped, $options: "i" };
+  }
+
+  const [total, items] = await Promise.all([
+    menuItems.countDocuments(filter),
+    menuItems
+      .aggregate([
+        { $match: filter },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: "user",
+            localField: "vendorId",
+            foreignField: "_id",
+            pipeline: [
+              {
+                $project: {
+                  name: 1,
+                  businessName: 1,
+                },
+              },
+            ],
+            as: "vendor",
+          },
+        },
+        {
+          $unwind: {
+            path: "$vendor",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+      ])
+      .toArray(),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    items,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages,
+    },
+  };
 }
 
 export function getMenuItemsByVendorId(vendorId: ObjectId) {
   return menuItems.find({ vendorId }).toArray();
 }
 
-export function getMenuItemById(id: string) {
-  return menuItems.findOne({ _id: new ObjectId(id) });
+export async function getMenuItemById(id: string) {
+  const [menuItem] = await menuItems
+    .aggregate([
+      { $match: { _id: new ObjectId(id) } },
+      {
+        $lookup: {
+          from: "user",
+          localField: "vendorId",
+          foreignField: "_id",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                businessName: 1,
+              },
+            },
+          ],
+          as: "user",
+        },
+      },
+      {
+        $unwind: {
+          path: "$user",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+    ])
+    .toArray();
+
+  return menuItem ?? null;
 }
 
 export function updateMenuItem(

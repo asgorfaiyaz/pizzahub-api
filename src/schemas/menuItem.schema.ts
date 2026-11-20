@@ -24,3 +24,14 @@ export const menuItemSchema = z.object({
 });
 
 export type MenuItemInput = z.infer<typeof menuItemSchema>;
+
+export const getMenuItemsQuerySchema = z.object({
+  search: z.string().trim().optional(),
+  name: z.string().trim().optional(),
+  category: z.string().trim().optional(),
+  location: z.string().trim().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+});
+
+export type GetMenuItemsQuery = z.infer<typeof getMenuItemsQuerySchema>;

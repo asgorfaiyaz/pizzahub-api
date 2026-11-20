@@ -1,5 +1,6 @@
 import type { RequestHandler } from "express";
 import { ObjectId } from "mongodb";
+import { getMenuItemsQuerySchema } from "../schemas/menuItem.schema.js";
 import {
   getAllMenuItems as getAllMenuItemsRecords,
   getMenuItemById as getMenuItemByIdRecord,
@@ -10,9 +11,34 @@ function isValidId(id: string) {
   return ObjectId.isValid(id);
 }
 
-export const getAllMenuItems: RequestHandler = async (_req, res) => {
-  const menuItems = await getAllMenuItemsRecords();
-  return sendResponse(res, 200, "Menu items retrieved successfully.", menuItems);
+export const getAllMenuItems: RequestHandler = async (req, res) => {
+  const result = getMenuItemsQuerySchema.safeParse(req.query);
+  if (!result.success) {
+    return sendResponse(
+      res,
+      400,
+      "Invalid query parameters.",
+      result.error.issues,
+    );
+  }
+
+  const { search, name, category, location, page, limit } = result.data;
+
+  const { items, pagination } = await getAllMenuItemsRecords({
+    search: search ?? name,
+    category,
+    location,
+    page,
+    limit,
+  });
+
+  return sendResponse(
+    res,
+    200,
+    "Menu items retrieved successfully.",
+    items,
+    pagination,
+  );
 };
 
 export const getMenuItemById: RequestHandler = async (req, res) => {
