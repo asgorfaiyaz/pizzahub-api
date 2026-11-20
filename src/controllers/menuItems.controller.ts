@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { getMenuItemsQuerySchema } from "../schemas/menuItem.schema.js";
 import {
   getAllMenuItems as getAllMenuItemsRecords,
+  getDistinctLocations as getDistinctLocationsRecords,
   getMenuItemById as getMenuItemByIdRecord,
 } from "../services/menuItems.service.js";
 import { sendResponse } from "../utils/apiResponse.js";
@@ -50,4 +51,9 @@ export const getMenuItemById: RequestHandler = async (req, res) => {
   const menuItem = await getMenuItemByIdRecord(id);
   if (!menuItem) return sendResponse(res, 404, "Menu item not found.");
   return sendResponse(res, 200, "Menu item retrieved successfully.", menuItem);
+};
+
+export const getMenuItemLocations: RequestHandler = async (_req, res) => {
+  const locations = await getDistinctLocationsRecords();
+  return sendResponse(res, 200, "Locations retrieved successfully.", locations);
 };

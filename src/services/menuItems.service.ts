@@ -88,6 +88,11 @@ export function getMenuItemsByVendorId(vendorId: ObjectId) {
   return menuItems.find({ vendorId }).toArray();
 }
 
+export async function getDistinctLocations(): Promise<string[]> {
+  const locations = await menuItems.distinct("location");
+  return locations.sort((a, b) => a.localeCompare(b));
+}
+
 export async function getMenuItemById(id: string) {
   const [menuItem] = await menuItems
     .aggregate([
