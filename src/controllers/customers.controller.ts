@@ -19,18 +19,26 @@ export const createOrder: RequestHandler = async (req, res) => {
     return sendResponse(res, 400, "Invalid order data.", result.error.issues);
   }
 
-  const { order, error, message } = await createOrderRecord(
+  const createResult = await createOrderRecord(
     result.data,
     req.userId!,
   );
 
-  if (error) {
+  if ("error" in createResult) {
     const statusCode =
-      error === "NOT_FOUND" ? 404 : error === "DUPLICATE_ORDER" ? 409 : 400;
-    return sendResponse(res, statusCode, message || "Failed to create order.");
+      createResult.error === "NOT_FOUND"
+        ? 404
+        : createResult.error === "DUPLICATE_ORDER"
+          ? 409
+          : 400;
+    return sendResponse(
+      res,
+      statusCode,
+      createResult.message || "Failed to create order.",
+    );
   }
 
-  return sendResponse(res, 201, "Order placed successfully.", order);
+  return sendResponse(res, 201, "Order placed successfully.", createResult.order);
 };
 
 export const myOrders: RequestHandler = async (req, res) => {
