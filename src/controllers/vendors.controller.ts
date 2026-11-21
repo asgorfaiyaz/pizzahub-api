@@ -12,6 +12,12 @@ import {
   getVendorOrders as getVendorOrdersRecords,
   updateVendorOrderStatus as updateVendorOrderStatusRecord,
 } from "../services/orders.service.js";
+import {
+  canVendorAddMenuItem,
+  createUpgradeCheckoutSession,
+  getPaymentConfirmation,
+  getVendorSubscriptionStatus,
+} from "../services/subscription.service.js";
 import { sendResponse } from "../utils/apiResponse.js";
 
 function isValidMenuItemId(id: string) {
@@ -20,13 +26,24 @@ function isValidMenuItemId(id: string) {
 
 export const getVendorMenuItems: RequestHandler = async (req, res) => {
   const menuItems = await getMenuItemsByVendorId(req.userId!);
-  return sendResponse(res, 200, "Vendor menu items retrieved successfully.", menuItems);
+  return sendResponse(
+    res,
+    200,
+    "Vendor menu items retrieved successfully.",
+    menuItems,
+  );
 };
 
 export const createVendorMenuItem: RequestHandler = async (req, res) => {
   const result = menuItemSchema.safeParse(req.body);
   if (!result.success) {
     return sendResponse(res, 400, "Invalid request data.", result.error.issues);
+  }
+
+  // Check free plan active items limit (max 3 items without Premium)
+  const permission = await canVendorAddMenuItem(req.userId!);
+  if (!permission.isPremium) {
+    return sendResponse(res, 403, permission.reason!);
   }
 
   const menuItem = await createMenuItemRecord(result.data, req.userId!);
@@ -59,13 +76,19 @@ export const deleteVendorMenuItem: RequestHandler = async (req, res) => {
   }
 
   const result = await deleteMenuItemRecord(id, req.userId!);
-  if (result.deletedCount === 0) return sendResponse(res, 404, "Menu item not found.");
+  if (result.deletedCount === 0)
+    return sendResponse(res, 404, "Menu item not found.");
   return sendResponse(res, 200, "Menu item deleted successfully.");
 };
 
 export const getVendorOrders: RequestHandler = async (req, res) => {
   const orders = await getVendorOrdersRecords(req.userId!);
-  return sendResponse(res, 200, "Vendor orders retrieved successfully.", orders);
+  return sendResponse(
+    res,
+    200,
+    "Vendor orders retrieved successfully.",
+    orders,
+  );
 };
 
 export const updateVendorOrderStatus: RequestHandler = async (req, res) => {
@@ -87,8 +110,64 @@ export const updateVendorOrderStatus: RequestHandler = async (req, res) => {
 
   if (error) {
     const statusCode = error === "NOT_FOUND" ? 404 : 400;
-    return sendResponse(res, statusCode, message || "Failed to update order status.");
+    return sendResponse(
+      res,
+      statusCode,
+      message || "Failed to update order status.",
+    );
   }
 
-  return sendResponse(res, 200, `Order ${result.data.status} successfully.`, order);
+  return sendResponse(
+    res,
+    200,
+    `Order ${result.data.status} successfully.`,
+    order,
+  );
+};
+
+export const getSubscriptionStatus: RequestHandler = async (req, res) => {
+  const status = await getVendorSubscriptionStatus(req.userId!);
+  return sendResponse(
+    res,
+    200,
+    "Subscription status retrieved successfully.",
+    status,
+  );
+};
+
+export const createCheckoutSession: RequestHandler = async (req, res) => {
+  const result = await createUpgradeCheckoutSession(req.userId!);
+  if ("error" in result) {
+    const statusCode = result.error === "ALREADY_PREMIUM" ? 400 : 404;
+    return sendResponse(res, statusCode, result.message);
+  }
+
+  return sendResponse(
+    res,
+    200,
+    "Checkout session created successfully.",
+    result,
+  );
+};
+
+export const getPaymentConfirmationHandler: RequestHandler = async (
+  req,
+  res,
+) => {
+  const sessionId = req.query.session_id;
+  if (typeof sessionId !== "string" || !sessionId.trim()) {
+    return sendResponse(res, 400, "session_id query parameter is required.");
+  }
+
+  const confirmation = await getPaymentConfirmation(sessionId, req.userId!);
+  if (!confirmation) {
+    return sendResponse(res, 404, "Payment transaction not found.");
+  }
+
+  return sendResponse(
+    res,
+    200,
+    "Payment confirmation retrieved successfully.",
+    confirmation,
+  );
 };

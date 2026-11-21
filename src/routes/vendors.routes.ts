@@ -1,7 +1,9 @@
 import { Router } from "express";
 import {
+  createCheckoutSession,
   createVendorMenuItem,
   deleteVendorMenuItem,
+  getSubscriptionStatus,
   getVendorMenuItems,
   getVendorOrders,
   updateVendorMenuItem,
@@ -22,5 +24,9 @@ router.delete("/menu-items/:id", deleteVendorMenuItem);
 
 router.get("/orders", getVendorOrders);
 router.patch("/orders/:id/status", updateVendorOrderStatus);
+
+// Vendor Subscription & Stripe Checkout routes
+router.get("/subscription", getSubscriptionStatus);
+router.post("/subscription/create-checkout-session", createCheckoutSession);
 
 export default router;
