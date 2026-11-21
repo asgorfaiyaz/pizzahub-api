@@ -15,6 +15,7 @@ export type OrderDocument = {
 
 const orders = getDatabase().collection<OrderDocument>("orders");
 const menuItems = getDatabase().collection("menuItems");
+const users = getDatabase().collection("user");
 
 export async function createOrder(
   data: CreateOrderInput,
@@ -90,6 +91,33 @@ export async function getCustomerOverviewStats(customerId: ObjectId) {
     accepted,
     rejected,
     cancelled,
+  };
+}
+
+export async function getVendorOverviewStats(vendorId: ObjectId) {
+  const [
+    totalMenuItems,
+    activeMenuItems,
+    pendingOrders,
+    acceptedOrders,
+    user,
+  ] = await Promise.all([
+    menuItems.countDocuments({ vendorId }),
+    menuItems.countDocuments({ vendorId, status: { $ne: "inactive" } }),
+    orders.countDocuments({ vendorId, status: "pending" }),
+    orders.countDocuments({ vendorId, status: "accepted" }),
+    users.findOne({ _id: vendorId }),
+  ]);
+
+  const isPremium =
+    user?.subscriptionPlan === true || user?.subscriptionPlan === "premium";
+
+  return {
+    totalMenuItems,
+    activeMenuItems,
+    pendingOrders,
+    acceptedOrders,
+    currentSubscriptionPlan: isPremium ? "premium" : "free",
   };
 }
 

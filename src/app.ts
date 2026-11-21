@@ -9,21 +9,13 @@ import webhooksRoutes from "./routes/webhooks.routes.js";
 
 const app = express();
 
-const allowedOrigins = [
-  "https://pizzahub-asgorfaiyaz.vercel.app",
-  "http://localhost:5173",
-  env.clientUrl,
-];
-
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // if origin isn't undefind and if matches allowedOrigins arr then all good
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error(`Origin ${origin} not allowed by CORS`));
-    },
+    origin: [
+      "https://pizzahub-asgorfaiyaz.vercel.app",
+      "http://localhost:5173",
+      env.clientUrl,
+    ],
     credentials: true,
   }),
 );

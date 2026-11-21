@@ -10,6 +10,7 @@ import {
 } from "../services/menuItems.service.js";
 import {
   getVendorOrders as getVendorOrdersRecords,
+  getVendorOverviewStats as getVendorOverviewStatsRecord,
   updateVendorOrderStatus as updateVendorOrderStatusRecord,
 } from "../services/orders.service.js";
 import {
@@ -169,5 +170,15 @@ export const getPaymentConfirmationHandler: RequestHandler = async (
     200,
     "Payment confirmation retrieved successfully.",
     confirmation,
+  );
+};
+
+export const getVendorOverview: RequestHandler = async (req, res) => {
+  const stats = await getVendorOverviewStatsRecord(req.userId!);
+  return sendResponse(
+    res,
+    200,
+    "Vendor overview retrieved successfully.",
+    stats,
   );
 };
