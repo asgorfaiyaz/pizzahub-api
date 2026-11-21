@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import customersRoutes from "./routes/customers.routes.js";
 import menuItemsRoutes from "./routes/menuItems.routes.js";
@@ -8,7 +9,25 @@ import webhooksRoutes from "./routes/webhooks.routes.js";
 
 const app = express();
 
-app.use(cors());
+const allowedOrigins = [
+  "https://pizzahub-asgorfaiyaz.vercel.app",
+  "http://localhost:5173",
+  env.clientUrl,
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // if origin isn't undefind and if matches allowedOrigins arr then all good
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
+    credentials: true,
+  }),
+);
+
 app.use(
   express.json({
     verify: (req: any, _res, buf) => {
