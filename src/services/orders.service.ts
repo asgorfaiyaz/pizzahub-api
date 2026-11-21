@@ -182,3 +182,83 @@ export async function cancelCustomerOrder(
 
   return { order: updatedOrder };
 }
+
+export async function updateVendorOrderStatus(
+  orderId: string,
+  vendorId: ObjectId,
+  status: "accepted" | "rejected",
+) {
+  const order = await orders.findOne({
+    _id: new ObjectId(orderId),
+    vendorId,
+  });
+
+  if (!order) {
+    return { error: "NOT_FOUND", message: "Order not found." };
+  }
+
+  if (order.status !== "pending") {
+    return {
+      error: "INVALID_STATE",
+      message: `Cannot update an order that is already ${order.status}.`,
+    };
+  }
+
+  const updatedOrder = await orders.findOneAndUpdate(
+    { _id: new ObjectId(orderId), vendorId },
+    { $set: { status } },
+    { returnDocument: "after" },
+  );
+
+  return { order: updatedOrder };
+}
+export function getVendorOrders(vendorId: ObjectId) {
+  const pipeline: Document[] = [
+    { $match: { vendorId } },
+    { $sort: { createdAt: -1 } },
+    {
+      $lookup: {
+        from: "menuItems",
+        localField: "itemId",
+        foreignField: "_id",
+        as: "item",
+      },
+    },
+    {
+      $unwind: {
+        path: "$item",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "user",
+        localField: "customerId",
+        foreignField: "_id",
+        pipeline: [
+          {
+            $project: {
+              name: 1,
+              email: 1,
+              phone: 1,
+            },
+          },
+        ],
+        as: "customer",
+      },
+    },
+    {
+      $unwind: {
+        path: "$customer",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $addFields: {
+        customerMessage: "$message",
+      },
+    },
+  ];
+
+  return orders.aggregate(pipeline).toArray();
+}
