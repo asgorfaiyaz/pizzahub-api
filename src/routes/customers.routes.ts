@@ -5,12 +5,13 @@ import {
   getCustomerOverview,
   myOrders,
 } from "../controllers/customers.controller.js";
+import { requireCustomer } from "../middleware/require-customer.js";
 import { verifyToken } from "../middleware/verify-token.js";
 
 const router = Router();
 
-// All customer endpoints require authentication
-router.use(verifyToken);
+// Secure all customer endpoints: requires valid session token and customer role
+router.use(verifyToken, requireCustomer);
 
 router.get("/overview", getCustomerOverview);
 router.get("/my-orders", myOrders);
