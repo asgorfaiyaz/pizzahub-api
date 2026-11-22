@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/error-handler.js";
+import adminRoutes from "./routes/admin.routes.js";
 import customersRoutes from "./routes/customers.routes.js";
 import menuItemsRoutes from "./routes/menuItems.routes.js";
 import vendorsRoutes from "./routes/vendors.routes.js";
@@ -32,6 +33,7 @@ app.use("/health", async (_req, res) => {
   res.status(200).send("hello world");
 });
 
+app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/menu-items", menuItemsRoutes);
 app.use("/api/v1/customers", customersRoutes);
 app.use("/api/v1/vendors", vendorsRoutes);
