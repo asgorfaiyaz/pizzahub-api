@@ -9,6 +9,7 @@ import {
 } from "../schemas/admin.schema.js";
 import {
   deleteMenuItemByAdmin,
+  getAdminOverviewStats,
   getAllSubmittedMenuItems,
   getAllTransactions,
   getAllUsers,
@@ -187,4 +188,14 @@ export const deleteMenuItemByAdminHandler: RequestHandler = async (
   }
 
   return sendResponse(res, 200, "Menu item deleted successfully.");
+};
+
+export const getAdminOverview: RequestHandler = async (_req, res) => {
+  const stats = await getAdminOverviewStats();
+  return sendResponse(
+    res,
+    200,
+    "Admin overview retrieved successfully.",
+    stats,
+  );
 };

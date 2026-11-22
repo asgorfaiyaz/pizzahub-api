@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   deleteMenuItemByAdminHandler,
+  getAdminOverview,
   getSubmittedMenuItems,
   getTransactions,
   getUserById,
@@ -15,6 +16,9 @@ const router = Router();
 
 // Secure all admin endpoints: requires valid session token and admin role
 router.use(verifyToken, requireAdmin);
+
+// Dashboard Overview
+router.get("/overview", getAdminOverview);
 
 // User Management
 router.get("/users", getUsers);

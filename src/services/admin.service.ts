@@ -297,3 +297,30 @@ export async function deleteMenuItemByAdmin(id: string) {
 
   return { success: true };
 }
+
+export async function getAdminOverviewStats() {
+  const [
+    totalRegisteredUsers,
+    totalVendors,
+    totalCustomers,
+    totalMenuItems,
+    pendingMenuItems,
+    totalTransactions,
+  ] = await Promise.all([
+    users.countDocuments(),
+    users.countDocuments({ role: "vendor" }),
+    users.countDocuments({ role: "customer" }),
+    menuItems.countDocuments(),
+    menuItems.countDocuments({ status: "pending" }),
+    transactions.countDocuments(),
+  ]);
+
+  return {
+    totalRegisteredUsers,
+    totalVendors,
+    totalCustomers,
+    totalMenuItems,
+    pendingMenuItems,
+    totalTransactions,
+  };
+}
