@@ -1,9 +1,13 @@
 import { ObjectId, type Filter, type Document } from "mongodb";
 import { getDatabase } from "../config/database.js";
-import type { GetAdminUsersQuery } from "../schemas/admin.schema.js";
+import type {
+  GetAdminTransactionsQuery,
+  GetAdminUsersQuery,
+} from "../schemas/admin.schema.js";
 
 const users = getDatabase().collection("user");
 const sessions = getDatabase().collection("session");
+const transactions = getDatabase().collection("transactions");
 
 export async function getAllUsers(options: Partial<GetAdminUsersQuery> = {}) {
   const { search, role, page = 1, limit = 10 } = options;
@@ -103,4 +107,79 @@ export async function updateUserBlockStatus(
   );
 
   return { user: updatedUser };
+}
+
+export async function getAllTransactions(
+  options: Partial<GetAdminTransactionsQuery> = {},
+) {
+  const { page = 1, limit = 10 } = options;
+  const skip = (page - 1) * limit;
+
+  const pipeline: Document[] = [
+    { $sort: { createdAt: -1 } },
+    { $skip: skip },
+    { $limit: limit },
+    {
+      $lookup: {
+        from: "user",
+        localField: "vendorId",
+        foreignField: "_id",
+        pipeline: [
+          {
+            $project: {
+              name: 1,
+              email: 1,
+              businessName: 1,
+              phone: 1,
+              subscriptionPlan: 1,
+            },
+          },
+        ],
+        as: "vendor",
+      },
+    },
+    {
+      $unwind: {
+        path: "$vendor",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        transactionId: 1,
+        amount: 1,
+        currency: 1,
+        paymentStatus: 1,
+        paymentMethod: 1,
+        createdAt: 1,
+        transactionDate: "$createdAt",
+        subscriptionPlan: "$vendor.subscriptionPlan",
+        vendor: {
+          _id: "$vendor._id",
+          name: "$vendor.name",
+          email: "$vendor.email",
+          businessName: "$vendor.businessName",
+          phone: "$vendor.phone",
+        },
+      },
+    },
+  ];
+
+  const [items, total] = await Promise.all([
+    transactions.aggregate(pipeline).toArray(),
+    transactions.countDocuments(),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    transactions: items,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages,
+    },
+  };
 }

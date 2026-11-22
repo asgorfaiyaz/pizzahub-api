@@ -1,10 +1,12 @@
 import type { RequestHandler } from "express";
 import { ObjectId } from "mongodb";
 import {
+  getAdminTransactionsQuerySchema,
   getAdminUsersQuerySchema,
   updateUserBlockStatusSchema,
 } from "../schemas/admin.schema.js";
 import {
+  getAllTransactions,
   getAllUsers,
   getUserById as getUserByIdRecord,
   updateUserBlockStatus as updateUserBlockStatusRecord,
@@ -87,5 +89,27 @@ export const updateUserBlockStatus: RequestHandler = async (req, res) => {
     200,
     `User has been ${action} successfully.`,
     response.user,
+  );
+};
+
+export const getTransactions: RequestHandler = async (req, res) => {
+  const result = getAdminTransactionsQuerySchema.safeParse(req.query);
+  if (!result.success) {
+    return sendResponse(
+      res,
+      400,
+      "Invalid query parameters.",
+      result.error.issues,
+    );
+  }
+
+  const { transactions, pagination } = await getAllTransactions(result.data);
+
+  return sendResponse(
+    res,
+    200,
+    "Transactions retrieved successfully.",
+    transactions,
+    pagination,
   );
 };

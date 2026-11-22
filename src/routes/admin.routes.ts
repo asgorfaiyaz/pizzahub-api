@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  getTransactions,
   getUserById,
   getUsers,
   updateUserBlockStatus,
@@ -15,5 +16,8 @@ router.use(verifyToken, requireAdmin);
 router.get("/users", getUsers);
 router.get("/users/:id", getUserById);
 router.patch("/users/:id/block", updateUserBlockStatus);
+
+// Platform Transactions (Strictly Read-Only: No edit/update routes)
+router.get("/transactions", getTransactions);
 
 export default router;
