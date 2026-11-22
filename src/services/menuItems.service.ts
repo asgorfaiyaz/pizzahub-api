@@ -67,7 +67,13 @@ export async function getAllMenuItems(
           {
             $project: {
               name: 1,
+              email: 1,
+              image: 1,
               businessName: 1,
+              restaurantLocation: 1,
+              restaurantOpeningTime: 1,
+              restaurantClosingTime: 1,
+              restaurantPhone: 1,
             },
           },
         ],
@@ -124,7 +130,13 @@ export async function getMenuItemById(id: string) {
             {
               $project: {
                 name: 1,
+                email: 1,
+                image: 1,
                 businessName: 1,
+                restaurantLocation: 1,
+                restaurantOpeningTime: 1,
+                restaurantClosingTime: 1,
+                restaurantPhone: 1,
               },
             },
           ],
