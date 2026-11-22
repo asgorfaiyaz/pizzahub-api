@@ -1,6 +1,7 @@
 import { ObjectId, type Filter, type Document } from "mongodb";
 import { getDatabase } from "../config/database.js";
 import type {
+  GetAdminMenuItemsQuery,
   GetAdminTransactionsQuery,
   GetAdminUsersQuery,
 } from "../schemas/admin.schema.js";
@@ -8,6 +9,7 @@ import type {
 const users = getDatabase().collection("user");
 const sessions = getDatabase().collection("session");
 const transactions = getDatabase().collection("transactions");
+const menuItems = getDatabase().collection("menuItems");
 
 export async function getAllUsers(options: Partial<GetAdminUsersQuery> = {}) {
   const { search, role, page = 1, limit = 10 } = options;
@@ -182,4 +184,116 @@ export async function getAllTransactions(
       totalPages,
     },
   };
+}
+
+export async function getAllSubmittedMenuItems(
+  options: Partial<GetAdminMenuItemsQuery> = {},
+) {
+  const { search, status, category, page = 1, limit = 10 } = options;
+  const skip = (page - 1) * limit;
+
+  const filter: Filter<Document> = {};
+
+  if (status && status !== "all") {
+    filter.status = status;
+  }
+
+  if (category && category.trim()) {
+    const escaped = category.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.category = { $regex: `^${escaped}$`, $options: "i" };
+  }
+
+  if (search && search.trim()) {
+    const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.$or = [
+      { itemName: { $regex: escaped, $options: "i" } },
+      { description: { $regex: escaped, $options: "i" } },
+    ];
+  }
+
+  const pipeline: Document[] = [
+    { $match: filter },
+    { $sort: { createdAt: -1, _id: -1 } },
+    { $skip: skip },
+    { $limit: limit },
+    {
+      $lookup: {
+        from: "user",
+        localField: "vendorId",
+        foreignField: "_id",
+        pipeline: [
+          {
+            $project: {
+              name: 1,
+              email: 1,
+              businessName: 1,
+            },
+          },
+        ],
+        as: "vendor",
+      },
+    },
+    {
+      $unwind: {
+        path: "$vendor",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+  ];
+
+  const [items, total] = await Promise.all([
+    menuItems.aggregate(pipeline).toArray(),
+    menuItems.countDocuments(filter),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    items,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages,
+    },
+  };
+}
+
+export async function updateMenuItemStatus(
+  id: string,
+  status: "pending" | "approved" | "rejected" | "inactive",
+) {
+  if (!ObjectId.isValid(id)) {
+    return { error: "INVALID_ID", message: "Invalid menu item ID format." };
+  }
+
+  const updatedItem = await menuItems.findOneAndUpdate(
+    { _id: new ObjectId(id) },
+    {
+      $set: {
+        status,
+        updatedAt: new Date(),
+      },
+    },
+    { returnDocument: "after" },
+  );
+
+  if (!updatedItem) {
+    return { error: "NOT_FOUND", message: "Menu item not found." };
+  }
+
+  return { item: updatedItem };
+}
+
+export async function deleteMenuItemByAdmin(id: string) {
+  if (!ObjectId.isValid(id)) {
+    return { error: "INVALID_ID", message: "Invalid menu item ID format." };
+  }
+
+  const result = await menuItems.deleteOne({ _id: new ObjectId(id) });
+  if (result.deletedCount === 0) {
+    return { error: "NOT_FOUND", message: "Menu item not found." };
+  }
+
+  return { success: true };
 }

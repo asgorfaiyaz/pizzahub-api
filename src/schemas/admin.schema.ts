@@ -27,3 +27,27 @@ export const getAdminTransactionsQuerySchema = z.object({
 export type GetAdminTransactionsQuery = z.infer<
   typeof getAdminTransactionsQuerySchema
 >;
+
+export const getAdminMenuItemsQuerySchema = z.object({
+  search: z.string().trim().optional(),
+  status: z
+    .enum(["pending", "approved", "rejected", "inactive", "all"])
+    .optional(),
+  category: z.string().trim().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+});
+
+export type GetAdminMenuItemsQuery = z.infer<
+  typeof getAdminMenuItemsQuerySchema
+>;
+
+export const updateMenuItemStatusSchema = z.object({
+  status: z.enum(["pending", "approved", "rejected", "inactive"], {
+    error: "Status must be 'pending', 'approved', 'rejected', or 'inactive'.",
+  }),
+});
+
+export type UpdateMenuItemStatusInput = z.infer<
+  typeof updateMenuItemStatusSchema
+>;
